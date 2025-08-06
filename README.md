@@ -1,6 +1,6 @@
-# Mailspoofsent
+# Mailsent
 
-Mailspoofsent is a versatile email sending tool that allows for both spoofed and authenticated email campaigns. It provides a command-line interface for single email sending and a comprehensive web UI for managing templates, drafts, mailboxes, and large-scale campaigns.
+Mailsent is a versatile email sending tool that allows for both spoofed and authenticated email campaigns. It provides a command-line interface for single email sending and a comprehensive web UI for managing templates, drafts, mailboxes, and large-scale campaigns.
 
 The tool currently delivers spoofed mails successfully to:
 
@@ -48,7 +48,7 @@ This part is not required, but it can be helpful for bypassing spam filters when
 Install on Linux:
 
 ```bash
-git clone https://github.com/mverschu/mailspoofsent
+https://github.com/maikama8/mailsent.git
 cd mailspoofsent
 chmod +x install.sh
 ./install.sh
@@ -61,7 +61,7 @@ chmod +x install.sh
 For sending a single spoofed email:
 
 ```bash
-sudo ./mailspoofsent.py [--bcc bcc_address] --mail-from from@example.com --mail-to to@example.com --mail-envelope envelope@example.com --subject "Your Subject" --body "Email body" --spoof-domain yourdomain.com
+sudo ./mailsent.py [--bcc bcc_address] --mail-from from@example.com --mail-to to@example.com --mail-envelope envelope@example.com --subject "Your Subject" --body "Email body" --spoof-domain yourdomain.com
 ```
 
 ### Web UI
@@ -69,7 +69,7 @@ sudo ./mailspoofsent.py [--bcc bcc_address] --mail-from from@example.com --mail-
 For a more feature-rich experience, including authenticated sending, drafts, and campaigns, use the web UI.
 
 ```bash
-sudo ./mailspoofsent.py --web
+sudo ./mailsent.py --web
 ```
 
 Navigate to `http://localhost:80` in your web browser to access the interface.
@@ -79,7 +79,7 @@ Navigate to `http://localhost:80` in your web browser to access the interface.
 ## Options
 
 ```
-Usage: ./mailspoofsent.py [--bcc bcc_address] --mail-from mail_from --mail-to mail_to --mail-envelope mail_envelope --subject subject --body body [--htmlbody body.html] --spoof-domain domain [--web]
+Usage: ./mailsent.py [--bcc bcc_address] --mail-from mail_from --mail-to mail_to --mail-envelope mail_envelope --subject subject --body body [--htmlbody body.html] --spoof-domain domain [--web]
 
 Options:
   --bcc bcc_address   Specify a bcc address for the email
