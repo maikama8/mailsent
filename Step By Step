@@ -1,0 +1,27 @@
+sudo apt update && sudo apt upgrade -y
+sudo apt install postfix mailutils -y
+sudo apt install python3 python3-pip -y
+pip3 install Flask Flask-SocketIO
+Set Up Public IP Address and PTR Record (for Spoofing):
+Public IP Address: Ensure your server has a valid public IP.
+
+PTR Record: A reverse DNS PTR record is required to help avoid spam filters. You need to set this record in your DNS provider settings.
+
+You will typically request your hosting provider or domain registrar to set up a PTR record for your public IP. It should resolve to a valid domain name (e.g., mail.yourdomain.com).
+
+You can check if the PTR record is set properly using the command:
+dig -x <your_public_ip>
+
+If the response shows a valid domain, your PTR record is correctly set.
+Configure Postfix for Spoofing:
+You may need to modify your Postfix configuration file to adjust for email spoofing
+Add or modify the following lines based on your requirements:
+myhostname = mail.yourdomain.com
+mydomain = yourdomain.com
+myorigin = $mydomain
+mydestination = $myhostname, localhost.$mydomain, localhost
+Save and exit (CTRL + X, then Y, and press Enter).
+Use the install.sh script (if available):
+If you have an install.sh script, you can run it to automate the installation:
+chmod +x install.sh
+./install.sh
