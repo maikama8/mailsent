@@ -49,7 +49,7 @@ Install on Linux:
 
 ```bash
 https://github.com/maikama8/mailsent.git
-cd mailspoofsent
+cd mailsent
 chmod +x install.sh
 ./install.sh
 ```
