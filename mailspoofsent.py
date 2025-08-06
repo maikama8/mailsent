@@ -466,7 +466,7 @@ def home():
             try:
                 with open(os.path.join(app.config['DRAFTS_FOLDER'], f), 'r') as draft_file:
                     draft_content = json.load(draft_file)
-                    draft_name = draft_content.get('name', f'Draft {datetime.fromtimestamp(int(draft_id.split("_")[1]) / 1000).strftime('%Y-%m-%d %H:%M:%S')}')
+                    draft_name = draft_content.get('name', f'Draft {datetime.fromtimestamp(int(draft_id.split("_")[1]) / 1000).strftime("%Y-%m-%d %H:%M:%S")}')
                     # If there's an HTML body path, read the content
                     if draft_content.get('html_body_path') and os.path.exists(draft_content['html_body_path']):
                         with open(draft_content['html_body_path'], 'r') as draft_html_file:
@@ -697,7 +697,7 @@ def manage_drafts():
             'body': request.form.get('body', ''),
             'spoof_domain': request.form['spoof_domain'],
             'bcc': request.form.get('bcc', ''),
-            'name': request.form.get('draft_name', f'Draft {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}'), # New: Add draft name
+            'name': request.form.get('draft_name', f'Draft {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'), # New: Add draft name
             'mailbox_id': request.form.get('mailbox_id', 'none'), # New: Add mailbox ID
             'html_body_path': html_body_path if html_body_path else None # New: Add html_body_path
         }
