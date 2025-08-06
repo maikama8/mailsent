@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+
+{% block title %}Send Email{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-paper-plane me-2"></i> Send Spoofed Email
+            </div>
+            <div class="card-body position-relative">
+                <!-- Templates and Drafts Selection Row -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="template_select" class="form-label">Use Template</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-file-alt"></i></span>
+                            <select class="form-select" id="template_select">
+                                <option value="">-- Select Template --</option>
+                                {% for template in templates %}
+                                <option value="{{ template.id }}" {% if request.args.get('template_id') == template.id %}selected{% endif %}>{{ template.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <a href="{{ url_for('manage_templates') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-cog"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="draft_select" class="form-label">Load Draft</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-save"></i></span>
+                            <select class="form-select" id="draft_select">
+                                <option value="">-- Select Draft --</option>
+                                {% for draft in drafts %}
+                                <option value="{{ draft.id }}">{{ draft.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" id="save-draft-btn" class="btn btn-outline-primary">
+                                <i class="fas fa-save"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="email-form" action="{{ url_for('send_email') }}" method="post" enctype="multipart/form-data">
+                    <!-- Hidden field for draft ID -->
+                    <input type="hidden" id="draft_id" name="draft_id" value="draft_{{ now_timestamp|default(((current_time|default(0)) * 1000)|int) }}">
+                    
+                    <!-- From/Envelope Row - Reduced vertical margins -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6">
+                            <label for="mail_from_type" class="form-label">From Type</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <select class="form-select" id="mail_from_type" name="mail_from_type" required>
+                                    <option value="custom">Custom Address</option>
+                                    <option value="mailbox">Configured Mailbox</option>
+                                </select>
+                            </div>
+                            <small class="text-muted">Choose between a custom address or a configured mailbox.</small>
+                        </div>
+                        <div class="col-md-6" id="mailbox_selection_div" style="display: none;">
+                            <label for="mailbox_id" class="form-label">Select Mailbox</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-inbox"></i></span>
+                                <select class="form-select" id="mailbox_id" name="mailbox_id">
+                                    <option value="none">-- Select Mailbox --</option>
+                                    {% for mailbox in mailboxes %}
+                                    <option value="{{ mailbox.id }}">{{ mailbox.name }} ({{ mailbox.username }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <small class="text-muted">Select a pre-configured mailbox.</small>
+                        </div>
+                    </div>
+
+                    <!-- From Address (Displayed) and Envelope Sender Row -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6" id="mail_from_div">
+                            <label for="mail_from" class="form-label">From Address (Displayed)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="mail_from" name="mail_from" placeholder="e.g., ceo@company.com" required>
+                            </div>
+                            <small class="text-muted">The address shown in mail clients</small>
+                        </div>
+                        <div class="col-md-6" id="mail_envelope_div">
+                            <label for="mail_envelope" class="form-label">Envelope Sender (SPF)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="text" class="form-control" id="mail_envelope" name="mail_envelope" placeholder="noreply@your-domain.com">
+                            </div>
+                            <small class="text-muted">Domain must have valid SPF (only for custom address)</small>
+                        </div>
+                    </div>
+
+                    <!-- To/BCC Row - Reduced vertical margins -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6">
+                            <label for="mail_to" class="form-label">To Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user-friends"></i></span>
+                                <input type="text" class="form-control" id="mail_to" name="mail_to" placeholder="victim@target.com" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="user_select" class="form-label">Select User</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                <select class="form-select" id="user_select">
+                                    <option value="">-- Select User --</option>
+                                    {% for user in users %}
+                                    <option value="{{ user }}">{{ user }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bcc" class="form-label">BCC Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user-secret"></i></span>
+                                <input type="text" class="form-control" id="bcc" name="bcc" placeholder="bcc@example.com">
+                            </div>
+                            <small class="text-muted">Optional hidden recipient</small>
+                        </div>
+                    </div>
+
+                    <!-- Spoof Domain Row - Reduced bottom margin -->
+                    <div class="row mb-2" id="spoof_domain_div">
+                        <div class="col-md-12">
+                            <label for="spoof_domain" class="form-label">Spoof Domain</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                <input type="text" class="form-control" id="spoof_domain" name="spoof_domain" placeholder="attacker-domain.com" required>
+                            </div>
+                            <small class="text-muted">Domain under attacker control (only for custom address)</small>
+                        </div>
+                    </div>
+
+                    <!-- Subject Row - Reduced bottom margin -->
+                    <div class="mb-2">
+                        <label for="subject" class="form-label">Subject</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-heading"></i></span>
+                            <input type="text" class="form-control" id="subject" name="subject" placeholder="Important Notice" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email Body</label>
+                        <ul class="nav nav-tabs mb-2" id="bodyTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="text-tab" data-bs-toggle="tab" data-bs-target="#text-body" type="button" role="tab">Text Editor</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="visual-tab" data-bs-toggle="tab" data-bs-target="#visual-body" type="button" role="tab">Visual Editor</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-body" type="button" role="tab">Upload HTML</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="bodyTabContent">
+                            <div class="tab-pane fade show active" id="text-body" role="tabpanel">
+                                <textarea class="form-control" id="body-input" name="body" rows="8" placeholder="Enter your email content here..."></textarea>
+                            </div>
+                            <div class="tab-pane fade" id="visual-body" role="tabpanel">
+                                <div class="visual-editor-container" style="border: 1px solid #ced4da; border-radius: 0.25rem; padding: 0; overflow: hidden; height: 400px;">
+                                    <iframe id="html-editor-frame" style="width: 100%; height: 100%; border: none;"></iframe>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="upload-body" role="tabpanel">
+                                <div class="input-group mb-2">
+                                    <input type="file" class="form-control" id="html_body" name="html_body" accept=".html">
+                                    <label class="input-group-text" for="html_body">Upload</label>
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Upload an HTML file for the email body
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="attachments" class="form-label">Attachments</label>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="attachments" name="attachments" multiple>
+                            <label class="input-group-text" for="attachments"><i class="fas fa-paperclip"></i></label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i> Send Email
+                        </button>
+                        <button type="button" id="clear-form-btn" class="btn btn-outline-secondary">
+                            <i class="fas fa-eraser me-2"></i> Clear Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-history me-2"></i> Recent Activity
+            </div>
+            <div class="card-body p-0 log-card">
+                <div id="log-container">
+                    <!-- Log entries will be populated here -->
+                    {% if log_data %}
+                        {% for entry in log_data %}
+                        <div class="log-entry p-2 border-bottom">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">{{ entry.email }}</span>
+                                <span class="log-timestamp">{{ entry.timestamp }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-3 text-center text-muted">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>No email activity yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Domain security details card will be inserted here by JavaScript -->
+
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-info-circle me-2"></i> Tool Information
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">MailSpoofSent</h5>
+                <p class="card-text">This tool allows you to send spoofed emails for security testing and educational purposes only.</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Only use this tool for authorized security testing. Unauthorized use may violate laws.
+                </div>
+                
+                <!-- Quick template access buttons -->
+                <div class="mt-3">
+                    <h6><i class="fas fa-file-alt me-2"></i> Quick Templates</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('manage_templates') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-cogs me-2"></i> Manage Templates
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<!-- Draft Name Modal -->
+<div class="modal fade" id="draftNameModal" tabindex="-1" aria-labelledby="draftNameModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="draftNameModalLabel">Save Draft</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="draftNameInput" class="form-label">Draft Name</label>
+                    <input type="text" class="form-control" id="draftNameInput" placeholder="Enter draft name" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSaveDraftBtn">Save Draft</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<!-- Include the domain checker script -->
+<script src="{{ url_for('static', filename='js/domain_checker.js') }}"></script>
+<script>
+    // Fetch log data on page load
+    fetch('/log')
+        .then(response => response.json())
+        .then(data => {
+            const logContainer = document.getElementById('log-container');
+            if (logContainer && data.log && data.log.length > 0) {
+                logContainer.innerHTML = '';
+                data.log.forEach(entry => {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry p-2 border-bottom';
+                    logEntry.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">${entry.email}</span>
+                            <span class="log-timestamp">${entry.timestamp}</span>
+                        </div>
+                    `;
+                    logContainer.appendChild(logEntry);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching log data:', error);
+        });
+        
+    // Mail From Type selection functionality
+    const mailFromTypeSelect = document.getElementById('mail_from_type');
+    const mailFromDiv = document.getElementById('mail_from_div');
+    const mailEnvelopeDiv = document.getElementById('mail_envelope_div');
+    const spoofDomainDiv = document.getElementById('spoof_domain_div');
+    const mailboxSelectionDiv = document.getElementById('mailbox_selection_div');
+    const mailFromInput = document.getElementById('mail_from');
+    const mailEnvelopeInput = document.getElementById('mail_envelope');
+    const spoofDomainInput = document.getElementById('spoof_domain');
+
+    function toggleMailFromFields() {
+        if (mailFromTypeSelect.value === 'custom') {
+            mailFromDiv.style.display = 'block';
+            mailEnvelopeDiv.style.display = 'block';
+            spoofDomainDiv.style.display = 'block';
+            mailboxSelectionDiv.style.display = 'none';
+            mailFromInput.setAttribute('required', 'required');
+            mailEnvelopeInput.setAttribute('required', 'required');
+            spoofDomainInput.setAttribute('required', 'required');
+        } else {
+            mailFromDiv.style.display = 'none';
+            mailEnvelopeDiv.style.display = 'none';
+            spoofDomainDiv.style.display = 'none';
+            mailboxSelectionDiv.style.display = 'block';
+            mailFromInput.removeAttribute('required');
+            mailEnvelopeInput.removeAttribute('required');
+            spoofDomainInput.removeAttribute('required');
+        }
+    }
+
+    if (mailFromTypeSelect) {
+        mailFromTypeSelect.addEventListener('change', toggleMailFromFields);
+        // Initial call to set correct state on page load
+        toggleMailFromFields();
+    }
+
+    // Template selection functionality
+    const templateSelect = document.getElementById('template_select');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            const templateId = this.value;
+            if (!templateId) return;
+            
+            // Show loading indicator
+            const bodyInput = document.getElementById('body-input');
+            const htmlEditorFrame = document.getElementById('html-editor-frame');
+            bodyInput.placeholder = 'Loading template...';
+            
+            // Fetch template data
+            fetch(`/templates/${templateId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Populate form fields
+                    document.getElementById('subject').value = data.subject || '';
+                    
+                    // Process HTML content to ensure it displays correctly
+                    let bodyContent = data.body || '';
+                    bodyInput.value = bodyContent;
+                    
+                    // Update visual editor if available
+                    if (htmlEditorFrame) {
+                        const iframeDoc = htmlEditorFrame.contentDocument || htmlEditorFrame.contentWindow.document;
+                        if (iframeDoc && iframeDoc.body) {
+                            iframeDoc.body.innerHTML = bodyContent;
+                        }
+                    }
+                    
+                })
+                .catch(error => {
+                    console.error('Error loading template:', error);
+                    showNotification('Error', 'Failed to load template', 'error');
+                    bodyInput.placeholder = 'Enter your email content here...';
+                });
+        });
+        
+        // Auto-load template if specified in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const templateId = urlParams.get('template_id');
+        if (templateId) {
+            templateSelect.value = templateId;
+            templateSelect.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // Draft selection functionality
+    const draftSelect = document.getElementById('draft_select');
+    if (draftSelect) {
+        draftSelect.addEventListener('change', function() {
+            const draftId = this.value;
+            if (!draftId) return;
+            
+            // Fetch draft data
+            fetch(`/draft/${draftId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Populate form fields
+                    document.getElementById('mail_to').value = data.mail_to || '';
+                    document.getElementById('subject').value = data.subject || '';
+                    document.getElementById('bcc').value = data.bcc || '';
+                    document.getElementById('draft_id').value = draftId;
+
+                    // Handle mail_from_type and related fields
+                    if (data.mailbox_id && data.mailbox_id !== 'none') {
+                        mailFromTypeSelect.value = 'mailbox';
+                        document.getElementById('mailbox_id').value = data.mailbox_id;
+                        // Set mail_from input to the mailbox username for display purposes
+                        const selectedMailboxOption = Array.from(document.getElementById('mailbox_id').options).find(option => option.value === data.mailbox_id);
+                        if (selectedMailboxOption) {
+                            mailFromInput.value = selectedMailboxOption.text.match(/\(([^)]+)\)/)[1]; // Extract username from option text
+                        }
+                    } else {
+                        mailFromTypeSelect.value = 'custom';
+                        mailFromInput.value = data.mail_from || '';
+                        mailEnvelopeInput.value = data.mail_envelope || '';
+                        spoofDomainInput.value = data.spoof_domain || '';
+                    }
+                    toggleMailFromFields(); // Update visibility based on loaded draft
+
+                    // Handle body content
+                    if (data.html_body_content) {
+                        document.getElementById('body-input').value = data.html_body_content;
+                        const htmlEditorFrame = document.getElementById('html-editor-frame');
+                        if (htmlEditorFrame) {
+                            const iframeDoc = htmlEditorFrame.contentDocument || htmlEditorFrame.contentWindow.document;
+                            if (iframeDoc && iframeDoc.body) {
+                                iframeDoc.body.innerHTML = data.html_body_content;
+                            }
+                        }
+                        // Switch to visual editor tab if HTML content is loaded
+                        const visualTabButton = document.getElementById('visual-tab');
+                        if (visualTabButton) {
+                            new bootstrap.Tab(visualTabButton).show();
+                        }
+                    } else {
+                        document.getElementById('body-input').value = data.body || '';
+                        const htmlEditorFrame = document.getElementById('html-editor-frame');
+                        if (htmlEditorFrame) {
+                            const iframeDoc = htmlEditorFrame.contentDocument || htmlEditorFrame.contentWindow.document;
+                            if (iframeDoc && iframeDoc.body) {
+                                iframeDoc.body.innerHTML = data.body || '';
+                            }
+                        }
+                        // Switch to text editor tab if plain text content is loaded
+                        const textTabButton = document.getElementById('text-tab');
+                        if (textTabButton) {
+                            new bootstrap.Tab(textTabButton).show();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading draft:', error);
+                    showNotification('Error', 'Failed to load draft', 'error');
+                });
+        });
+    }
+    
+    // Save draft functionality
+    const saveDraftBtn = document.getElementById('save-draft-btn');
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', function() {
+            const form = document.getElementById('email-form');
+            const formData = new FormData(form);
+            
+            // Add mailbox_id to formData if selected
+            if (mailFromTypeSelect.value === 'mailbox') {
+                formData.append('mailbox_id', document.getElementById('mailbox_id').value);
+            } else {
+                formData.append('mailbox_id', 'none'); // Explicitly set to none if custom
+            }
+
+            fetch('/drafts', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Success', 'Draft saved successfully', 'success');
+                    
+                    // Add the new draft to the dropdown if it's not already there
+                    const draftId = data.draft_id;
+                    let draftExists = false;
+                    for (let i = 0; i < draftSelect.options.length; i++) {
+                        if (draftSelect.options[i].value === draftId) {
+                            draftExists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!draftExists) {
+                        const option = document.createElement('option');
+                        option.value = draftId;
+                        option.text = data.draft_name; // Use the name returned from the server
+                        draftSelect.appendChild(option);
+                    }
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving draft:', error);
+            });
+        });
+    }
+    
+    // Clear form button
+    const clearFormBtn = document.getElementById('clear-form-btn');
+    if (clearFormBtn) {
+        clearFormBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear the form?')) {
+                document.getElementById('email-form').reset();
+                document.getElementById('draft_id').value = 'draft_' + Date.now();
+                document.getElementById('template_select').value = '';
+                document.getElementById('draft_select').value = '';
+                
+                // Clear visual editor if available
+                const htmlEditorFrame = document.getElementById('html-editor-frame');
+                if (htmlEditorFrame) {
+                    const iframeDoc = htmlEditorFrame.contentDocument || htmlEditorFrame.contentWindow.document;
+                    if (iframeDoc && iframeDoc.body) {
+                        iframeDoc.body.innerHTML = '';
+                    }
+                }
+                
+                // Reset mail from type to custom and toggle fields
+                mailFromTypeSelect.value = 'custom';
+                toggleMailFromFields();
+
+                showNotification('Info', 'Form cleared', 'success');
+            }
+        });
+    }
+    
+    // Visual editor sync with hidden textarea using iframe
+    const htmlEditorFrame = document.getElementById('html-editor-frame');
+    const bodyInput = document.getElementById('body-input');
+    
+    if (htmlEditorFrame && bodyInput) {
+        // Initialize iframe editor when tab is clicked
+        document.getElementById('visual-tab').addEventListener('click', function() {
+            initializeIframeEditor();
+        });
+        
+        // Also sync when switching back to text tab
+        document.getElementById('text-tab').addEventListener('click', function() {
+            updateTextareaFromIframe();
+        });
+        
+        // Function to initialize the iframe editor
+        function initializeIframeEditor() {
+            // Get iframe document
+            const iframeDoc = htmlEditorFrame.contentDocument || htmlEditorFrame.contentWindow.document;
+            
+            // Create base HTML structure with styles to contain content
+            iframeDoc.open();
+            iframeDoc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            padding: 10px;
+                            margin: 0;
+                            line-height: 1.6;
+                            min-height: 100%;
+                        }
+                        img { max-width: 100%; height: auto; }
+                        table { max-width: 100%; }
+                    </style>
+                </head>
+                <body contenteditable="true">${bodyInput.value}</body>
+                </html>
+            `);
+            iframeDoc.close();
+            
+            // Add event listener to sync changes
+            iframeDoc.body.addEventListener('input', function() {
+                updateTextareaFromIframe();
+            });
+        }
+        
+        // Function to update textarea from iframe
+        function updateTextareaFromIframe() {
+            try {
+                const iframeDoc = htmlEditorFrame.contentDocument || htmlEditorFrame.contentWindow.document;
+                if (iframeDoc && iframeDoc.body) {
+                    bodyInput.value = iframeDoc.body.innerHTML;
+                }
+            } catch (e) {
+                console.error('Error updating from iframe:', e);
+            }
+        }
+    }
+</script>
+{% endblock %}
