@@ -61,7 +61,7 @@ chmod +x install.sh
 For sending a single spoofed email:
 
 ```bash
-sudo ./mailsent.py [--bcc bcc_address] --mail-from from@example.com --mail-to to@example.com --mail-envelope envelope@example.com --subject "Your Subject" --body "Email body" --spoof-domain yourdomain.com
+sudo ./mailspoofsent.py [--bcc bcc_address] --mail-from from@example.com --mail-to to@example.com --mail-envelope envelope@example.com --subject "Your Subject" --body "Email body" --spoof-domain yourdomain.com
 ```
 
 ### Web UI
@@ -69,7 +69,7 @@ sudo ./mailsent.py [--bcc bcc_address] --mail-from from@example.com --mail-to to
 For a more feature-rich experience, including authenticated sending, drafts, and campaigns, use the web UI.
 
 ```bash
-sudo ./mailsent.py --web
+sudo ./mailspoofsent.py --web
 ```
 
 Navigate to `http://localhost:80` in your web browser to access the interface.
