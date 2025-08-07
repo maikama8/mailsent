@@ -48,7 +48,7 @@ This part is not required, but it can be helpful for bypassing spam filters when
 Install on Linux:
 
 ```bash
-https://github.com/maikama8/mailsent.git
+git clone https://github.com/maikama8/mailsent.git
 cd mailsent
 chmod +x install.sh
 ./install.sh
