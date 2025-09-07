@@ -889,8 +889,8 @@ def test_mailbox():
     if not mailbox:
         return jsonify({'success': False, 'message': 'Mailbox not found'}), 404
     
-    subject = "MailSpoofSent Test Email"
-    body = f"This is a test email sent from MailSpoofSent using mailbox: {mailbox['name']} ({mailbox['username']})."
+    subject = "MailSpoofer Test Email"
+    body = f"This is a test email sent from MailSpoofer using mailbox: {mailbox['name']} ({mailbox['username']})."
     
     success, message = send_authenticated_email(
         sender_email=mailbox['username'],
